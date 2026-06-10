@@ -1,0 +1,46 @@
+basePath: /api/v1
+definitions:
+  health.Status:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+  response.Envelope:
+    properties:
+      data: {}
+    type: object
+  response.Error:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: RESTful API for the bookstore application.
+  title: Bookstore API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns the current API health status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/health.Status'
+              type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Check API health
+      tags:
+      - health
+swagger: "2.0"
