@@ -22,6 +22,14 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("enable foreign keys: %w", err)
 	}
 
+	if _, err := db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_book_unique_identity
+		ON Book (LOWER(TRIM(title)), pub_id, prod_year)
+	`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ensure unique book index: %w", err)
+	}
+
 	ctxTimeout := 5 * time.Second
 	db.SetConnMaxIdleTime(ctxTimeout)
 

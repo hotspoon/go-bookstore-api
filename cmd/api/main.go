@@ -15,6 +15,7 @@ import (
 	"time"
 
 	_ "bookstore-api/docs"
+	"bookstore-api/internal/book"
 	"bookstore-api/internal/config"
 	"bookstore-api/internal/health"
 	"bookstore-api/internal/platform/database"
@@ -92,6 +93,7 @@ func setupRouter(cfg config.Config, db *sql.DB) *gin.Engine {
 
 	api := router.Group("/api/" + cfg.APIVersion)
 	health.RegisterRoutes(api, db)
+	book.RegisterRoutes(api, db)
 
 	return router
 }

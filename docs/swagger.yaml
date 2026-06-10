@@ -1,5 +1,76 @@
 basePath: /api/v1
 definitions:
+  book.Book:
+    properties:
+      b_format:
+        type: string
+      category:
+        type: string
+      filesize:
+        type: integer
+      id:
+        type: string
+      price:
+        type: number
+      prod_year:
+        type: integer
+      pub_id:
+        type: integer
+      quantity:
+        type: integer
+      title:
+        type: string
+    type: object
+  book.CreateRequest:
+    properties:
+      b_format:
+        type: string
+      category:
+        type: string
+      filesize:
+        type: integer
+      price:
+        type: number
+      prod_year:
+        type: integer
+      pub_id:
+        type: integer
+      quantity:
+        type: integer
+      title:
+        type: string
+    required:
+    - price
+    - prod_year
+    - pub_id
+    - quantity
+    - title
+    type: object
+  book.UpdateRequest:
+    properties:
+      b_format:
+        type: string
+      category:
+        type: string
+      filesize:
+        type: integer
+      price:
+        type: number
+      prod_year:
+        type: integer
+      pub_id:
+        type: integer
+      quantity:
+        type: integer
+      title:
+        type: string
+    required:
+    - price
+    - prod_year
+    - pub_id
+    - quantity
+    - title
+    type: object
   health.Status:
     properties:
       status:
@@ -15,12 +86,184 @@ definitions:
       message:
         type: string
     type: object
+  response.Mutation:
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+    type: object
 info:
   contact: {}
   description: RESTful API for the bookstore application.
   title: Bookstore API
   version: "1.0"
 paths:
+  /books:
+    get:
+      description: Returns all books ordered by ID.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Envelope'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/book.Book'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Get all books
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: Creates a new book with a generated ID.
+      parameters:
+      - description: Book data
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/book.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Mutation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Create a new book
+      tags:
+      - books
+  /books/{id}:
+    delete:
+      description: Deletes a book by its ID.
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Mutation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Delete a book by ID
+      tags:
+      - books
+    get:
+      description: Returns a single book by its ID.
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/book.Book'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Get a book by ID
+      tags:
+      - books
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing book by its ID with the provided data.
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated book data
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/book.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Mutation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Update an existing book
+      tags:
+      - books
   /health:
     get:
       description: Returns the current API health status.

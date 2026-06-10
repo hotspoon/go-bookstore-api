@@ -3,6 +3,7 @@ package book
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -61,6 +62,69 @@ func TestRepositoryFindAllReturnsEmptySlice(t *testing.T) {
 	}
 }
 
+func TestRepositoryFindOneWithStringID(t *testing.T) {
+	db := openTestDB(t)
+
+	_, err := db.Exec(`
+		INSERT INTO Book (
+			id, pub_id, title, price, category, quantity, b_format, prod_year, filesize
+		) VALUES (
+			'0-7475-3269-9', 1, 'Harry Potter', 10, 'Fantasy', 5, 'Paperback', 1997, 512
+		)
+	`)
+	if err != nil {
+		t.Fatalf("seed book: %v", err)
+	}
+
+	book, err := NewRepository(db).FindOne(context.Background(), "0-7475-3269-9")
+	if err != nil {
+		t.Fatalf("FindOne() error = %v", err)
+	}
+
+	if book.ID != "0-7475-3269-9" {
+		t.Fatalf("FindOne() ID = %q, want string ID", book.ID)
+	}
+}
+
+func TestRepositoryFindOneReturnsNotFound(t *testing.T) {
+	db := openTestDB(t)
+
+	_, err := NewRepository(db).FindOne(context.Background(), "unknown")
+	if !errors.Is(err, ErrBookNotFound) {
+		t.Fatalf("FindOne() error = %v, want ErrBookNotFound", err)
+	}
+}
+
+func TestRepositoryUpdateReturnsNotFound(t *testing.T) {
+	db := openTestDB(t)
+
+	err := NewRepository(db).Update(context.Background(), "unknown", Book{
+		PubID: 1, Title: "Updated", Price: 10, Quantity: 1, ProdYear: 2026,
+	})
+	if !errors.Is(err, ErrBookNotFound) {
+		t.Fatalf("Update() error = %v, want ErrBookNotFound", err)
+	}
+}
+
+func TestRepositoryRejectsDuplicateBookIdentity(t *testing.T) {
+	db := openTestDB(t)
+	repository := NewRepository(db)
+
+	first := Book{
+		ID: "book-1", PubID: 1, Title: "Same Book", Price: 10, Quantity: 1, ProdYear: 2026,
+	}
+	if err := repository.Create(context.Background(), first); err != nil {
+		t.Fatalf("first Create() error = %v", err)
+	}
+
+	duplicate := first
+	duplicate.ID = "book-2"
+	duplicate.Title = "  same book  "
+	if err := repository.Create(context.Background(), duplicate); !errors.Is(err, ErrBookAlreadyExists) {
+		t.Fatalf("duplicate Create() error = %v, want ErrBookAlreadyExists", err)
+	}
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
@@ -83,7 +147,10 @@ func openTestDB(t *testing.T) *sql.DB {
 			b_format TEXT,
 			prod_year INTEGER NOT NULL,
 			filesize INTEGER
-		)
+		);
+
+		CREATE UNIQUE INDEX idx_book_unique_identity
+		ON Book (LOWER(TRIM(title)), pub_id, prod_year)
 	`)
 	if err != nil {
 		t.Fatalf("create Book table: %v", err)
