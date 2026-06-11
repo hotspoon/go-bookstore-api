@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -31,11 +32,11 @@ import (
 func main() {
 	cfg := config.Load()
 
-	logFile, err := logging.Init(cfg.LogPath)
+	logFiles, err := logging.Init(cfg.LogPath, cfg.AccessLogPath)
 	if err != nil {
 		panic(err)
 	}
-	defer logFile.Close()
+	defer logFiles.Close()
 
 	db, err := database.Open(cfg.DatabasePath)
 	if err != nil {
@@ -43,7 +44,7 @@ func main() {
 	}
 	defer db.Close()
 
-	router := setupRouter(cfg, db)
+	router := setupRouter(cfg, db, logFiles.AccessWriter)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -71,11 +72,12 @@ func main() {
 	}
 }
 
-func setupRouter(cfg config.Config, db *sql.DB) *gin.Engine {
+func setupRouter(cfg config.Config, db *sql.DB, accessWriter io.Writer) *gin.Engine {
 	router := gin.New()
-	router.Use(gin.Recovery())
+	router.Use(gin.LoggerWithWriter(accessWriter))
+	router.Use(gin.RecoveryWithWriter(accessWriter))
 	router.Use(appmiddleware.RequestID())
-	router.Use(appmiddleware.Logger())
+	router.Use(appmiddleware.ErrorHandler(book.HTTPErrorMapper))
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},

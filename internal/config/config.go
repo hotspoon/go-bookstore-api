@@ -13,6 +13,7 @@ type Config struct {
 	APIVersion     string
 	DatabasePath   string
 	LogPath        string
+	AccessLogPath  string
 	GinMode        string
 	AllowedOrigins []string
 }
@@ -21,11 +22,12 @@ func Load() Config {
 	_ = godotenv.Load()
 
 	cfg := Config{
-		Port:         envOrDefault("PORT", "8080"),
-		APIVersion:   envOrDefault("API_VERSION", "v1"),
-		DatabasePath: envOrDefault("DB_PATH", "bookstore.db"),
-		LogPath:      envOrDefault("LOG_PATH", "app.log"),
-		GinMode:      envOrDefault("GIN_MODE", gin.DebugMode),
+		Port:          envOrDefault("PORT", "8080"),
+		APIVersion:    envOrDefault("API_VERSION", "v1"),
+		DatabasePath:  envOrDefault("DB_PATH", "bookstore.db"),
+		LogPath:       envOrDefault("LOG_PATH", "app.log"),
+		AccessLogPath: envOrDefault("ACCESS_LOG_PATH", "access.log"),
+		GinMode:       envOrDefault("GIN_MODE", gin.DebugMode),
 	}
 
 	origins := envOrDefault("FRONTEND_WEB_URL", "http://localhost:3000")

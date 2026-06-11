@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	appmiddleware "bookstore-api/internal/shared/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,13 +39,19 @@ func (s serviceStub) Delete(context.Context, string) error {
 	return s.err
 }
 
+func newBookRouter() *gin.Engine {
+	router := gin.New()
+	router.Use(appmiddleware.ErrorHandler(HTTPErrorMapper))
+	return router
+}
+
 func TestHandlerFindAll(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{
 		books: []Book{{ID: "book-1", Title: "First Book"}},
 	})
-	router := gin.New()
+	router := newBookRouter()
 	router.GET("/books", handler.FindAll)
 
 	request := httptest.NewRequest(http.MethodGet, "/books", nil)
@@ -63,7 +71,7 @@ func TestHandlerFindAllReturnsInternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{err: errors.New("service failed")})
-	router := gin.New()
+	router := newBookRouter()
 	router.GET("/books", handler.FindAll)
 
 	request := httptest.NewRequest(http.MethodGet, "/books", nil)
@@ -85,7 +93,7 @@ func TestHandlerFindOneAcceptsStringID(t *testing.T) {
 	handler := NewHandler(serviceStub{
 		book: Book{ID: "0-7475-3269-9", Title: "Harry Potter"},
 	})
-	router := gin.New()
+	router := newBookRouter()
 	router.GET("/books/:id", handler.FindOne)
 
 	request := httptest.NewRequest(http.MethodGet, "/books/0-7475-3269-9", nil)
@@ -105,7 +113,7 @@ func TestHandlerFindOneReturnsNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{err: ErrBookNotFound})
-	router := gin.New()
+	router := newBookRouter()
 	router.GET("/books/:id", handler.FindOne)
 
 	request := httptest.NewRequest(http.MethodGet, "/books/unknown", nil)
@@ -125,7 +133,7 @@ func TestHandlerFindOneReturnsInternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{err: errors.New("database unavailable")})
-	router := gin.New()
+	router := newBookRouter()
 	router.GET("/books/:id", handler.FindOne)
 
 	request := httptest.NewRequest(http.MethodGet, "/books/book-1", nil)
@@ -147,7 +155,7 @@ func TestHandlerCreateReturnsSuccessMessage(t *testing.T) {
 	handler := NewHandler(serviceStub{
 		book: Book{ID: "0123456789abcdefabcd", PubID: 1, Title: "New Book"},
 	})
-	router := gin.New()
+	router := newBookRouter()
 	router.POST("/books", handler.Create)
 
 	body := `{"pub_id":1,"title":"New Book","price":10,"quantity":5,"prod_year":2026}`
@@ -169,7 +177,7 @@ func TestHandlerCreateRejectsIDOnlyInput(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{})
-	router := gin.New()
+	router := newBookRouter()
 	router.POST("/books", handler.Create)
 
 	request := httptest.NewRequest(http.MethodPost, "/books", strings.NewReader(`{"id":"client-id"}`))
@@ -186,7 +194,7 @@ func TestHandlerUpdateReturnsSuccessMessage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{})
-	router := gin.New()
+	router := newBookRouter()
 	router.PUT("/books/:id", handler.Update)
 
 	body := `{"pub_id":1,"title":"Updated Book","price":20,"quantity":4,"prod_year":2026}`
@@ -208,7 +216,7 @@ func TestHandlerDeleteReturnsSuccessMessage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{})
-	router := gin.New()
+	router := newBookRouter()
 	router.DELETE("/books/:id", handler.Delete)
 
 	request := httptest.NewRequest(http.MethodDelete, "/books/book-1", nil)
@@ -228,7 +236,7 @@ func TestHandlerCreateAndUpdateRejectDuplicateBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{err: ErrBookAlreadyExists})
-	router := gin.New()
+	router := newBookRouter()
 	router.POST("/books", handler.Create)
 	router.PUT("/books/:id", handler.Update)
 
@@ -259,7 +267,7 @@ func TestHandlerUpdateAndDeleteReturnNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewHandler(serviceStub{err: ErrBookNotFound})
-	router := gin.New()
+	router := newBookRouter()
 	router.PUT("/books/:id", handler.Update)
 	router.DELETE("/books/:id", handler.Delete)
 

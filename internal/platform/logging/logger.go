@@ -10,9 +10,21 @@ import (
 
 var Logger zerolog.Logger
 
-func Init(path string) (*os.File, error) {
-	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
+type Files struct {
+	App          *os.File
+	Access       *os.File
+	AccessWriter io.Writer
+}
+
+func Init(appPath, accessPath string) (*Files, error) {
+	appFile, err := openLogFile(appPath)
 	if err != nil {
+		return nil, err
+	}
+
+	accessFile, err := openLogFile(accessPath)
+	if err != nil {
+		appFile.Close()
 		return nil, err
 	}
 
@@ -22,10 +34,23 @@ func Init(path string) (*os.File, error) {
 		TimeFormat: time.RFC3339,
 	}
 
-	Logger = zerolog.New(io.MultiWriter(console, logFile)).
+	Logger = zerolog.New(io.MultiWriter(console, appFile)).
 		With().
 		Timestamp().
 		Logger()
 
-	return logFile, nil
+	return &Files{
+		App:          appFile,
+		Access:       accessFile,
+		AccessWriter: io.MultiWriter(os.Stdout, accessFile),
+	}, nil
+}
+
+func (f *Files) Close() {
+	_ = f.Access.Close()
+	_ = f.App.Close()
+}
+
+func openLogFile(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 }

@@ -1,9 +1,9 @@
 package book
 
 import (
-	"errors"
 	"net/http"
 
+	appmiddleware "bookstore-api/internal/shared/middleware"
 	"bookstore-api/internal/shared/response"
 
 	"github.com/gin-gonic/gin"
@@ -28,8 +28,7 @@ func NewHandler(service Service) Handler {
 func (h Handler) FindAll(c *gin.Context) {
 	books, err := h.service.FindAll(c.Request.Context())
 	if err != nil {
-		_ = c.Error(err)
-		response.Fail(c, http.StatusInternalServerError, "failed to get books")
+		appmiddleware.AddError(c, err, "failed to get books")
 		return
 	}
 
@@ -51,14 +50,7 @@ func (h Handler) FindOne(c *gin.Context) {
 	bookID := c.Param("id")
 	book, err := h.service.FindOne(c.Request.Context(), bookID)
 	if err != nil {
-		_ = c.Error(err)
-
-		if errors.Is(err, ErrBookNotFound) {
-			response.Fail(c, http.StatusNotFound, "book not found")
-			return
-		}
-
-		response.Fail(c, http.StatusInternalServerError, "failed to get book")
+		appmiddleware.AddError(c, err, "failed to get book")
 		return
 	}
 
@@ -86,14 +78,7 @@ func (h Handler) Create(c *gin.Context) {
 
 	book, err := h.service.Create(c.Request.Context(), request.Book())
 	if err != nil {
-		_ = c.Error(err)
-
-		if errors.Is(err, ErrBookAlreadyExists) {
-			response.Fail(c, http.StatusConflict, "book already exists")
-			return
-		}
-
-		response.Fail(c, http.StatusInternalServerError, "failed to create book")
+		appmiddleware.AddError(c, err, "failed to create book")
 		return
 	}
 
@@ -122,19 +107,7 @@ func (h Handler) Update(c *gin.Context) {
 	}
 
 	if err := h.service.Update(c.Request.Context(), c.Param("id"), request.Book()); err != nil {
-		_ = c.Error(err)
-
-		if errors.Is(err, ErrBookNotFound) {
-			response.Fail(c, http.StatusNotFound, "book not found")
-			return
-		}
-
-		if errors.Is(err, ErrBookAlreadyExists) {
-			response.Fail(c, http.StatusConflict, "book already exists")
-			return
-		}
-
-		response.Fail(c, http.StatusInternalServerError, "failed to update book")
+		appmiddleware.AddError(c, err, "failed to update book")
 		return
 	}
 
@@ -154,14 +127,7 @@ func (h Handler) Update(c *gin.Context) {
 // @Router /books/{id} [delete]
 func (h Handler) Delete(c *gin.Context) {
 	if err := h.service.Delete(c.Request.Context(), c.Param("id")); err != nil {
-		_ = c.Error(err)
-
-		if errors.Is(err, ErrBookNotFound) {
-			response.Fail(c, http.StatusNotFound, "book not found")
-			return
-		}
-
-		response.Fail(c, http.StatusInternalServerError, "failed to delete book")
+		appmiddleware.AddError(c, err, "failed to delete book")
 		return
 	}
 

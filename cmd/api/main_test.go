@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,7 +48,7 @@ func TestGetAllBooksRoute(t *testing.T) {
 	router := setupRouter(config.Config{
 		APIVersion:     "v1",
 		AllowedOrigins: []string{"*"},
-	}, db)
+	}, db, io.Discard)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/books", nil)
 	recorder := httptest.NewRecorder()
