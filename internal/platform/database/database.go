@@ -30,6 +30,14 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ensure unique book index: %w", err)
 	}
 
+	if _, err := db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_source_unique_name
+		ON Source (LOWER(TRIM(s_name)))
+	`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ensure unique author index: %w", err)
+	}
+
 	ctxTimeout := 5 * time.Second
 	db.SetConnMaxIdleTime(ctxTimeout)
 

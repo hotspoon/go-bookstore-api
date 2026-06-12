@@ -16,6 +16,7 @@ import (
 	"time"
 
 	_ "bookstore-api/docs"
+	"bookstore-api/internal/author"
 	"bookstore-api/internal/book"
 	"bookstore-api/internal/config"
 	"bookstore-api/internal/health"
@@ -77,7 +78,7 @@ func setupRouter(cfg config.Config, db *sql.DB, accessWriter io.Writer) *gin.Eng
 	router.Use(gin.LoggerWithWriter(accessWriter))
 	router.Use(gin.RecoveryWithWriter(accessWriter))
 	router.Use(appmiddleware.RequestID())
-	router.Use(appmiddleware.ErrorHandler(book.HTTPErrorMapper))
+	router.Use(appmiddleware.ErrorHandler(book.HTTPErrorMapper, author.HTTPErrorMapper))
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
@@ -96,6 +97,7 @@ func setupRouter(cfg config.Config, db *sql.DB, accessWriter io.Writer) *gin.Eng
 	api := router.Group("/api/" + cfg.APIVersion)
 	health.RegisterRoutes(api, db)
 	book.RegisterRoutes(api, db)
+	author.RegisterRoutes(api, db)
 
 	return router
 }
